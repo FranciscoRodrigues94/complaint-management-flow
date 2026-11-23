@@ -19,13 +19,14 @@ class _NewComplaintPageState extends State<NewComplaintPage> {
   final _assignee = TextEditingController(text: 'Jordan Lee');
   final _affected = TextEditingController(text: '100');
   final _rejected = TextEditingController(text: '0');
+  final _estimatedCost = TextEditingController();
   String _category = 'Visual defect';
   String _severity = 'Medium';
   bool _saving = false;
 
   @override
   void dispose() {
-    for (final controller in [_title, _customer, _itemCode, _description, _reporter, _assignee, _affected, _rejected]) {
+    for (final controller in [_title, _customer, _itemCode, _description, _reporter, _assignee, _affected, _rejected, _estimatedCost]) {
       controller.dispose();
     }
     super.dispose();
@@ -42,6 +43,11 @@ class _NewComplaintPageState extends State<NewComplaintPage> {
     final parsed = int.tryParse(value ?? '');
     return parsed == null || parsed < 0 ? 'Enter zero or a positive whole number.' : null;
   }
+  String? _money(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    final amount = double.tryParse(value.trim().replaceAll(',', '.'));
+    return amount == null || !amount.isFinite || amount < 0 ? 'Enter a valid, non-negative amount.' : null;
+  }
 
   Future<void> _save() async {
     if (_saving || !_formKey.currentState!.validate()) return;
@@ -56,6 +62,7 @@ class _NewComplaintPageState extends State<NewComplaintPage> {
         'description': _description.text.trim(), 'category': _category, 'severity': _severity,
         'reporter': _reporter.text.trim(), 'assigned_to': _assignee.text.trim(),
         'affected_quantity': int.parse(_affected.text), 'rejected_quantity': int.parse(_rejected.text),
+        'estimated_cost': _estimatedCost.text.trim().isEmpty ? null : double.parse(_estimatedCost.text.trim().replaceAll(',', '.')),
       });
     } catch (error) {
       if (mounted) showNotice(context, 'Could not save: $error', error: true);
@@ -76,10 +83,10 @@ class _NewComplaintPageState extends State<NewComplaintPage> {
       ),
       const SizedBox(height: 12),
       _pair(
-        DropdownButtonFormField<String>(initialValue: _category, decoration: fieldDecoration('Defect category'),
-          items: ['Visual defect', 'Dimensional', 'Packaging', 'Assembly', 'Other'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+        DropdownButtonFormField<String>(initialValue: _category, isExpanded: true, decoration: fieldDecoration('Defect category'),
+          items: ['Visual defect', 'Dimensional', 'Packaging', 'Assembly', 'Missing parts', 'Contamination', 'Documentation', 'Functional', 'Other'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
           onChanged: (value) => setState(() => _category = value ?? _category)),
-        DropdownButtonFormField<String>(initialValue: _severity, decoration: fieldDecoration('Severity'),
+        DropdownButtonFormField<String>(initialValue: _severity, isExpanded: true, decoration: fieldDecoration('Severity'),
           items: ['Low', 'Medium', 'High'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
           onChanged: (value) => setState(() => _severity = value ?? _severity)),
       ),
@@ -100,8 +107,16 @@ class _NewComplaintPageState extends State<NewComplaintPage> {
       const SizedBox(height: 12),
       const Align(alignment: Alignment.centerLeft, child: Text('The workflow starts as Open. Containment and investigation follow after registration.', style: TextStyle(color: muted, fontSize: 12))),
     ])),
+    const SizedBox(height: 12),
+    SectionCard(title: 'Financial impact', child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      SizedBox(width: 320, child: TextFormField(controller: _estimatedCost, keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: fieldDecoration('Estimated financial impact (€)'), validator: _money)),
+      const SizedBox(height: 8),
+      const Text('Optional initial estimate. Record scrap, rework and inspection costs later in complaint details.',
+        style: TextStyle(color: muted, fontSize: 12)),
+    ])),
     const SizedBox(height: 20),
-    Wrap(spacing: 10, children: [
+    Wrap(spacing: 10, runSpacing: 10, children: [
       FilledButton.icon(onPressed: _saving ? null : _save, icon: const Icon(Icons.save_outlined), label: Text(_saving ? 'Saving...' : 'Create complaint')),
       OutlinedButton(onPressed: widget.onCancel, child: const Text('Cancel')),
     ]),

@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'models/complaint.dart';
 import 'pages/about_page.dart';
@@ -29,6 +30,7 @@ class ComplaintManagementApp extends StatelessWidget {
 
 class AppHome extends StatefulWidget {
   const AppHome({super.key});
+
   @override
   State<AppHome> createState() => _AppHomeState();
 }
@@ -96,6 +98,7 @@ class _AppHomeState extends State<AppHome> {
     const icons = [Icons.dashboard_outlined, Icons.assignment_outlined,
       Icons.add_circle_outline, Icons.checklist_outlined, Icons.info_outline];
     final selected = _complaints.where((c) => c.id == _selectedComplaintId).firstOrNull;
+
     return Scaffold(body: LayoutBuilder(builder: (context, constraints) {
       final compact = constraints.maxWidth < 960;
       return Row(children: [
@@ -146,23 +149,38 @@ class _AppHomeState extends State<AppHome> {
                 2 => NewComplaintPage(onCreate: _create, onCancel: () => _navigate(1)),
                 3 => ActionsPage(actions: _actions, complaints: _complaints,
                   onOpenComplaint: _openComplaint,
-                  onChangeStatus: (id, status) => _mutate(() async { await _repository.updateAction(id, status, 'Demo operator'); })),
+                  onChangeStatus: (id, status) => _mutate(() async {
+                    await _repository.updateAction(id, status, 'Demo operator');
+                  })),
                 4 => const AboutPage(),
                 5 when selected != null => ComplaintDetailPage(
-                  key: ValueKey(selected.id), complaint: selected,
+                  key: ValueKey(selected.id),
+                  complaint: selected,
                   actions: _actions.where((a) => a.complaintId == selected.id).toList(),
-                  events: _events, canExportPdf: _repository.supportsPdfExport,
+                  events: _events,
+                  canExportPdf: _repository.supportsPdfExport,
                   onBack: () => _navigate(1),
-                  onSaveContainment: (notes, actor) => _mutate(() async { await _repository.updateContainment(selected.id, notes, actor); }),
-                  onSaveInvestigation: (cause, actor) => _mutate(() async { await _repository.updateInvestigation(selected.id, cause, actor); }),
+                  onSaveContainment: (notes, actor) => _mutate(() async {
+                    await _repository.updateContainment(selected.id, notes, actor);
+                  }),
+                  onSaveInvestigation: (cause, actor) => _mutate(() async {
+                    await _repository.updateInvestigation(selected.id, cause, actor);
+                  }),
                   onSaveVerification: (result, notes, reviewer, actor) => _mutate(() async {
                     await _repository.updateVerification(selected.id, result, notes, reviewer, actor);
                   }),
-                  onTransition: (status, actor) => _mutate(() async { await _repository.transition(selected.id, status, actor); }),
+                  onTransition: (status, actor) => _mutate(() async {
+                    await _repository.transition(selected.id, status, actor);
+                  }),
                   onAddAction: (title, owner, date, actor) => _mutate(() async {
                     await _repository.createAction(selected.id, title, owner, date, actor);
                   }),
-                  onUpdateAction: (id, status, actor) => _mutate(() async { await _repository.updateAction(id, status, actor); }),
+                  onUpdateAction: (id, status, actor) => _mutate(() async {
+                    await _repository.updateAction(id, status, actor);
+                  }),
+                  onSaveCosts: useApi ? null : (costs, actor) => _mutate(() async {
+                    await _repository.updateCosts(selected.id, costs, actor);
+                  }),
                   onExportPdf: () => _repository.exportReport(selected.id, selected.reference),
                 ),
                 _ => const Center(child: Text('Complaint not found. Return to the register.')),

@@ -14,6 +14,7 @@ abstract class ComplaintRepository {
   Future<Complaint> transition(int id, String status, String actor);
   Future<CorrectiveAction> createAction(int complaintId, String title, String owner, DateTime dueDate, String actor);
   Future<CorrectiveAction> updateAction(int actionId, String status, String actor);
+  Future<void> updateCosts(int complaintId, Map<String, double> costs, String actor);
   Future<String> exportReport(int complaintId, String reference);
 }
 
@@ -82,6 +83,11 @@ class ApiComplaintRepository implements ComplaintRepository {
       await _request('PATCH', '/api/actions/$actionId', {'status': status, 'actor': actor}) as Map<String, dynamic>);
 
   @override
+  Future<void> updateCosts(int complaintId, Map<String, double> costs, String actor) async {
+    throw UnsupportedError('Cost editing in API mode requires a backend endpoint and database migration.');
+  }
+
+  @override
   Future<String> exportReport(int complaintId, String reference) async {
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
     try {
@@ -132,6 +138,18 @@ class DemoComplaintRepository implements ComplaintRepository {
 
   DemoComplaintRepository() {
     _seedPortfolioCases();
+    for (var index = 0; index < _complaints.length; index++) {
+      final complaint = _complaints[index];
+      final hasCosts = complaint.status != 'Open';
+      final base = complaint.rejectedQuantity * (complaint.severity == 'High' ? 19.0 : 8.0);
+      _complaints[index] = complaint.copyWith(
+        estimatedCost: base * 1.25,
+        scrapCost: hasCosts ? base * 0.60 : null,
+        reworkCost: hasCosts ? base * 0.25 : null,
+        inspectionCost: hasCosts ? base * 0.15 : null,
+        otherCost: hasCosts ? (index % 4) * 25.0 : null,
+      );
+    }
   }
 
   void _seedPortfolioCases() {
@@ -259,6 +277,7 @@ class DemoComplaintRepository implements ComplaintRepository {
       affectedQuantity: affected, rejectedQuantity: rejected,
       containmentAction: '', rootCause: '', verificationResult: 'Not reviewed',
       verificationNotes: '', verifiedBy: '', createdAt: DateTime.now(), updatedAt: DateTime.now(),
+      estimatedCost: (data['estimated_cost'] as num?)?.toDouble(),
     );
     _complaints.add(complaint);
     _event(id, 'created', 'Complaint registered', complaint.reporter);
@@ -351,6 +370,21 @@ class DemoComplaintRepository implements ComplaintRepository {
     _actions[index] = updated;
     _event(previous.complaintId, 'action', 'Action status changed: ${previous.status} → $status', actor);
     return updated;
+  }
+
+  @override
+  Future<void> updateCosts(int complaintId, Map<String, double> costs, String actor) async {
+    final current = _get(complaintId);
+    _editable(current);
+    for (final value in costs.values) {
+      if (!value.isFinite || value < 0) throw StateError('Costs must be non-negative finite numbers.');
+    }
+    final updated = current.copyWith(
+      scrapCost: costs['scrap_cost'], reworkCost: costs['rework_cost'],
+      inspectionCost: costs['inspection_cost'], otherCost: costs['other_cost'],
+    );
+    _replace(updated);
+    _event(complaintId, 'costs', 'Quality costs updated', actor);
   }
 
   @override

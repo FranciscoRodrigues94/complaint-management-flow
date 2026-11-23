@@ -15,12 +15,13 @@ class ComplaintDetailPage extends StatefulWidget {
   final Future<void> Function(String, String, DateTime, String) onAddAction;
   final Future<void> Function(int, String, String) onUpdateAction;
   final Future<String> Function() onExportPdf;
+  final Future<void> Function(Map<String, double>, String)? onSaveCosts;
 
   const ComplaintDetailPage({super.key, required this.complaint, required this.actions,
     required this.events, required this.canExportPdf, required this.onBack,
     required this.onSaveContainment, required this.onSaveInvestigation,
     required this.onSaveVerification, required this.onTransition, required this.onAddAction,
-    required this.onUpdateAction, required this.onExportPdf});
+    required this.onUpdateAction, required this.onExportPdf, this.onSaveCosts});
 
   @override
   State<ComplaintDetailPage> createState() => _ComplaintDetailPageState();
@@ -35,6 +36,10 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
   late final TextEditingController _verificationNotes;
   late final TextEditingController _reviewer;
   late String _verificationResult;
+  late final TextEditingController _scrapCost;
+  late final TextEditingController _reworkCost;
+  late final TextEditingController _inspectionCost;
+  late final TextEditingController _otherCost;
 
   @override
   void initState() {
@@ -45,6 +50,10 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
     _verificationNotes = TextEditingController(text: widget.complaint.verificationNotes);
     _reviewer = TextEditingController(text: widget.complaint.verifiedBy);
     _verificationResult = widget.complaint.verificationResult;
+    _scrapCost = TextEditingController(text: _costText(widget.complaint.scrapCost));
+    _reworkCost = TextEditingController(text: _costText(widget.complaint.reworkCost));
+    _inspectionCost = TextEditingController(text: _costText(widget.complaint.inspectionCost));
+    _otherCost = TextEditingController(text: _costText(widget.complaint.otherCost));
   }
 
   @override
@@ -56,13 +65,24 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
       _verificationNotes.text = widget.complaint.verificationNotes;
       _reviewer.text = widget.complaint.verifiedBy;
       _verificationResult = widget.complaint.verificationResult;
+      _syncCostControllers();
       _tab = 0;
+    } else if (oldWidget.complaint != widget.complaint && !_busy) {
+      _syncCostControllers();
     }
+  }
+
+  String _costText(double? cost) => cost == null ? '' : cost.toStringAsFixed(2);
+  void _syncCostControllers() {
+    _scrapCost.text = _costText(widget.complaint.scrapCost);
+    _reworkCost.text = _costText(widget.complaint.reworkCost);
+    _inspectionCost.text = _costText(widget.complaint.inspectionCost);
+    _otherCost.text = _costText(widget.complaint.otherCost);
   }
 
   @override
   void dispose() {
-    for (final controller in [_actor, _containment, _rootCause, _verificationNotes, _reviewer]) {
+    for (final controller in [_actor, _containment, _rootCause, _verificationNotes, _reviewer, _scrapCost, _reworkCost, _inspectionCost, _otherCost]) {
       controller.dispose();
     }
     super.dispose();
@@ -94,7 +114,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
     final progress = switch (complaint.status) {
       'Open' => 0.2, 'In Progress' => 0.5, 'Pending Verification' => 0.8, _ => 1.0,
     };
-    final tabs = ['Overview', 'Containment', 'Investigation & actions', 'Verification', 'History'];
+    final tabs = ['Overview', 'Containment', 'Investigation & actions', 'Verification', 'Quality costs', 'History'];
     return ListView(children: [
       Row(children: [
         TextButton.icon(onPressed: widget.onBack, icon: const Icon(Icons.arrow_back), label: const Text('Back to complaints')),
@@ -139,6 +159,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
         1 => _containmentPanel(),
         2 => _investigationPanel(),
         3 => _verificationPanel(),
+        4 => _costsPanel(),
         _ => _historyPanel(),
       },
       const SizedBox(height: 24),
@@ -153,6 +174,8 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
         _info('Item code', c.itemCode), _info('Category', c.category), _info('Severity', c.severity),
         _info('Reported by', c.reporter), _info('Assigned to', c.assignedTo),
         _info('Affected quantity', '${c.affectedQuantity}'), _info('Rejected quantity', '${c.rejectedQuantity}'),
+        _info('Estimated impact', c.estimatedCost == null ? 'Not estimated' : '€${c.estimatedCost!.toStringAsFixed(2)}'),
+        _info('Recorded quality costs', c.hasRecordedCosts ? '€${c.totalQualityCost.toStringAsFixed(2)}' : 'Not recorded'),
         const SizedBox(height: 12),
         const Text('Problem description', style: TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
@@ -319,6 +342,63 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
         if (!enabled) const Padding(padding: EdgeInsets.only(top: 10), child: Text(
           'Verification can be edited only while the case is Pending Verification.',
           style: TextStyle(fontSize: 12, color: muted))),
+      ],
+    ));
+  }
+
+  Widget _costsPanel() {
+    final c = widget.complaint;
+    final editable = !_closed && widget.onSaveCosts != null;
+    Widget costField(String label, TextEditingController controller) => TextFormField(
+      controller: controller, readOnly: !editable,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: fieldDecoration('$label (€)'),
+    );
+    return SectionCard(title: 'Cost of Poor Quality', child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(c.estimatedCost == null ? 'Initial estimate: not provided' : 'Initial estimate: €${c.estimatedCost!.toStringAsFixed(2)}',
+          style: const TextStyle(color: muted)),
+        const SizedBox(height: 14),
+        LayoutBuilder(builder: (context, constraints) {
+          final fields = [
+            costField('Scrap', _scrapCost), costField('Rework', _reworkCost),
+            costField('Additional inspection', _inspectionCost), costField('Other', _otherCost),
+          ];
+          if (constraints.maxWidth < 580) return Column(children: [
+            for (final field in fields) Padding(padding: const EdgeInsets.only(bottom: 12), child: field),
+          ]);
+          return Column(children: [
+            Row(children: [Expanded(child: fields[0]), const SizedBox(width: 12), Expanded(child: fields[1])]),
+            const SizedBox(height: 12),
+            Row(children: [Expanded(child: fields[2]), const SizedBox(width: 12), Expanded(child: fields[3])]),
+          ]);
+        }),
+        const SizedBox(height: 12),
+        Text(c.hasRecordedCosts ? 'Recorded total: €${c.totalQualityCost.toStringAsFixed(2)}' : 'No actual costs recorded yet.',
+          style: const TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        if (editable) FilledButton.icon(
+          onPressed: _busy ? null : () {
+            final inputs = [_scrapCost, _reworkCost, _inspectionCost, _otherCost];
+            final values = <double>[];
+            for (final input in inputs) {
+              final raw = input.text.trim();
+              final value = raw.isEmpty ? 0.0 : double.tryParse(raw.replaceAll(',', '.'));
+              if (value == null || !value.isFinite || value < 0) {
+                showNotice(context, 'Enter valid, non-negative cost amounts.', error: true);
+                return;
+              }
+              values.add(value);
+            }
+            _perform(() => widget.onSaveCosts!({
+              'scrap_cost': values[0], 'rework_cost': values[1],
+              'inspection_cost': values[2], 'other_cost': values[3],
+            }, _actorName), 'Quality costs saved');
+          },
+          icon: const Icon(Icons.save_outlined), label: const Text('Save costs')),
+        if (!_closed && widget.onSaveCosts == null) const Text('Cost editing is not connected in this mode.',
+          style: TextStyle(color: muted, fontSize: 12)),
+        if (_closed) const Text('Closed complaints are read-only.', style: TextStyle(color: muted, fontSize: 12)),
       ],
     ));
   }
