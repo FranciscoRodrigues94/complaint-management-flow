@@ -178,7 +178,7 @@ class _AppHomeState extends State<AppHome> {
                   onUpdateAction: (id, status, actor) => _mutate(() async {
                     await _repository.updateAction(id, status, actor);
                   }),
-                  onSaveCosts: useApi ? null : (costs, actor) => _mutate(() async {
+                  onSaveCosts: (costs, actor) => _mutate(() async {
                     await _repository.updateCosts(selected.id, costs, actor);
                   }),
                   onExportPdf: () => _repository.exportReport(selected.id, selected.reference),

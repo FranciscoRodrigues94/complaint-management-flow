@@ -84,7 +84,7 @@ class ApiComplaintRepository implements ComplaintRepository {
 
   @override
   Future<void> updateCosts(int complaintId, Map<String, double> costs, String actor) async {
-    throw UnsupportedError('Cost editing in API mode requires a backend endpoint and database migration.');
+    await _request('PATCH', '/api/complaints/$complaintId/costs', {...costs, 'actor': actor});
   }
 
   @override

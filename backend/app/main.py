@@ -1,6 +1,7 @@
 """Local-only demonstration API. Not suitable for deployment without authentication and TLS."""
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone
+from decimal import Decimal
 from os import environ
 
 import psycopg
@@ -18,7 +19,8 @@ load_dotenv()
 DATABASE_URL = environ.get('DATABASE_URL')
 COMPLAINT_COLUMNS = ('id, reference, title, customer, item_code, category, severity, status, description, reporter, '
     'assigned_to, affected_quantity, rejected_quantity, containment_action, root_cause, '
-    'verification_result, verification_notes, verified_by, created_at, updated_at')
+    'verification_result, verification_notes, verified_by, estimated_cost, scrap_cost, '
+    'rework_cost, inspection_cost, other_cost, created_at, updated_at')
 ACTION_COLUMNS = 'id, complaint_id, title, owner, due_date, status, completed_at'
 EVENT_COLUMNS = 'id, complaint_id, event_type, message, actor, created_at'
 
@@ -45,12 +47,22 @@ class ComplaintCreate(BaseModel):
     assigned_to: str = Field(min_length=2, max_length=100)
     affected_quantity: int = Field(ge=1, le=100000000)
     rejected_quantity: int = Field(ge=0, le=100000000)
+    estimated_cost: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
 
     @model_validator(mode='after')
     def check_quantities(self):
         if self.rejected_quantity > self.affected_quantity:
             raise ValueError('Rejected quantity cannot exceed affected quantity.')
         return self
+
+
+class CostsUpdate(BaseModel):
+    model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
+    scrap_cost: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
+    rework_cost: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
+    inspection_cost: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
+    other_cost: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
+    actor: str = Field(min_length=2, max_length=100)
 
 
 class ContainmentUpdate(BaseModel):
@@ -98,7 +110,7 @@ def connection():
 
 
 def view(row):
-    return {key: value.isoformat() if isinstance(value, (date, datetime)) else value for key, value in row.items()}
+    return {key: value.isoformat() if isinstance(value, (date, datetime)) else float(value) if isinstance(value, Decimal) else value for key, value in row.items()}
 
 
 def get_existing(conn, complaint_id: int, lock: bool = False):
@@ -145,10 +157,23 @@ def create_complaint(data: ComplaintCreate):
         complaint_id = conn.execute("SELECT nextval(pg_get_serial_sequence('complaints', 'id')) AS id").fetchone()['id']
         reference = f'CMP-{datetime.now(timezone.utc).year}-{complaint_id:04d}'
         row = conn.execute(f'''INSERT INTO complaints
-            (id, reference, title, customer, item_code, category, severity, description, reporter, assigned_to, affected_quantity, rejected_quantity)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING {COMPLAINT_COLUMNS}''',
-            (complaint_id, reference, data.title, data.customer, data.item_code, data.category, data.severity, data.description, data.reporter, data.assigned_to, data.affected_quantity, data.rejected_quantity)).fetchone()
+            (id, reference, title, customer, item_code, category, severity, description, reporter, assigned_to, affected_quantity, rejected_quantity, estimated_cost)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING {COMPLAINT_COLUMNS}''',
+            (complaint_id, reference, data.title, data.customer, data.item_code, data.category, data.severity, data.description, data.reporter, data.assigned_to, data.affected_quantity, data.rejected_quantity, data.estimated_cost)).fetchone()
         record_event(conn, complaint_id, 'created', 'Complaint registered', data.reporter)
+    return view(row)
+
+
+@app.patch('/api/complaints/{complaint_id}/costs')
+def update_costs(complaint_id: int, data: CostsUpdate):
+    with connection() as conn:
+        complaint = get_existing(conn, complaint_id, lock=True)
+        ensure_editable(complaint)
+        row = conn.execute(f'''UPDATE complaints SET scrap_cost = %s, rework_cost = %s,
+            inspection_cost = %s, other_cost = %s, updated_at = NOW()
+            WHERE id = %s RETURNING {COMPLAINT_COLUMNS}''',
+            (data.scrap_cost, data.rework_cost, data.inspection_cost, data.other_cost, complaint_id)).fetchone()
+        record_event(conn, complaint_id, 'costs', 'Quality costs updated', data.actor)
     return view(row)
 
 
