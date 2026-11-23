@@ -1,0 +1,45 @@
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+coverage/
+**/doc/api/
+
+# Python / FastAPI
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment variables and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# IDE / Editor
+.idea/
+*.iml
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+
+# Operating system / Temporary files
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+
+# Database backups
+*.dump
+*.backup
+*.sql.gz
