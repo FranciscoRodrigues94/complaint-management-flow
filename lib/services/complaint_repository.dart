@@ -130,6 +130,91 @@ class DemoComplaintRepository implements ComplaintRepository {
     actor: 'Demo system', createdAt: DateTime(2026, 11, index + 2),
   ));
 
+  DemoComplaintRepository() {
+    _seedPortfolioCases();
+  }
+
+  void _seedPortfolioCases() {
+    const titles = [
+      'Surface finish inconsistency', 'Incorrect assembly clearance',
+      'Packaging label mismatch', 'Dimensional tolerance exceeded',
+      'Material discoloration', 'Missing component in delivery',
+      'Surface contamination detected', 'Incorrect hole positioning',
+      'Incomplete production documentation', 'Excessive component deformation',
+      'Damaged transportation packaging', 'Functional inspection failure',
+    ];
+    const categories = [
+      'Visual defect', 'Assembly', 'Packaging', 'Dimensional',
+      'Visual defect', 'Missing parts', 'Contamination', 'Dimensional',
+      'Documentation', 'Dimensional', 'Packaging', 'Functional',
+    ];
+    const customers = [
+      'Northstar Components', 'Atlas Mobility', 'Orion Industrial',
+      'Summit Engineering', 'Vertex Systems', 'Helix Manufacturing',
+    ];
+    const owners = ['Jordan Lee', 'Taylor Reed', 'Alex Morgan', 'Sam Carter'];
+    final statuses = <String>[
+      ...List.filled(10, 'Open'),
+      ...List.filled(17, 'In Progress'),
+      ...List.filled(7, 'Pending Verification'),
+      ...List.filled(11, 'Closed'),
+    ];
+    for (var id = 6; id <= 50; id++) {
+      final index = id - 6;
+      final issue = index % titles.length;
+      final status = statuses[index];
+      final owner = owners[index % owners.length];
+      final created = DateTime(2026, 1, 1).add(Duration(days: index * 7));
+      final updated = created.add(const Duration(days: 3));
+      final affected = 100 + (id * 37) % 900;
+      final rejected = 5 + (id * 11) % 80;
+      final investigated = status != 'Open';
+      final readyForVerification = status == 'Pending Verification' || status == 'Closed';
+      final complaint = Complaint(
+        id: id,
+        reference: 'CMP-2026-${id.toString().padLeft(4, '0')}',
+        title: titles[issue],
+        customer: customers[index % customers.length],
+        itemCode: 'QF-${1000 + id * 17}',
+        category: categories[issue],
+        severity: ['Low', 'Medium', 'High'][index % 3],
+        status: status,
+        description: 'Fictional quality incident identified during routine inspection of production lot ${1000 + id}.',
+        reporter: 'Alex Morgan',
+        assignedTo: owner,
+        affectedQuantity: affected,
+        rejectedQuantity: rejected,
+        containmentAction: investigated ? 'Affected stock isolated and inspection initiated.' : '',
+        rootCause: readyForVerification ? 'Process variation identified during investigation.' : '',
+        verificationResult: status == 'Closed' ? 'Effective' : 'Not reviewed',
+        verificationNotes: status == 'Closed' ? 'Follow-up inspection confirmed effectiveness.' : '',
+        verifiedBy: status == 'Closed' ? 'Jordan Lee' : '',
+        createdAt: created,
+        updatedAt: updated,
+      );
+      _complaints.add(complaint);
+      _events.add(ComplaintEvent(
+        id: ++_eventSequence, complaintId: id, eventType: 'created',
+        message: 'Fictional complaint registered', actor: 'Demo system', createdAt: created,
+      ));
+      if (investigated) {
+        _actions.add(CorrectiveAction(
+          id: ++_actionSequence,
+          complaintId: id,
+          title: 'Review process controls for ${categories[issue].toLowerCase()}',
+          owner: owner,
+          dueDate: created.add(const Duration(days: 14)),
+          status: readyForVerification ? 'Completed' : 'In Progress',
+        ));
+        _events.add(ComplaintEvent(
+          id: ++_eventSequence, complaintId: id, eventType: 'status',
+          message: 'Status changed to $status', actor: 'Demo system', createdAt: updated,
+        ));
+      }
+    }
+    _complaintSequence = 50;
+  }
+
   Complaint _get(int id) {
     final index = _complaints.indexWhere((item) => item.id == id);
     if (index < 0) throw StateError('Complaint not found.');
