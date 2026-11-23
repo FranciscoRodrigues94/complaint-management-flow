@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: complaint_management_demo
+      POSTGRES_USER: cmf_demo
+      POSTGRES_PASSWORD: change_me_local_only
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - cmf_demo_data:/var/lib/postgresql/data
+      - ./sql/001_schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+      - ./sql/002_seed_demo.sql:/docker-entrypoint-initdb.d/002_seed_demo.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cmf_demo -d complaint_management_demo"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+volumes:
+  cmf_demo_data:
