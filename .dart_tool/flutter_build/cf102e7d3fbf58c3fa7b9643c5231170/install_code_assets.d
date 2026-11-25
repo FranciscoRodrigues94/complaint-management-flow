@@ -1,1 +1,0 @@
- C:\\Users\\Francisco.Rodrigues\\FlutterProjetos\\Reklamationen_App\\QS_Reklamationen_Portfolio_GitHub\\qualityflow\\.dart_tool\\flutter_build\\cf102e7d3fbf58c3fa7b9643c5231170\\native_assets.json: 

@@ -1,1 +1,0 @@
- C:\\Users\\Francisco.Rodrigues\\FlutterProjetos\\Reklamationen_App\\QS_Reklamationen_Portfolio_GitHub\\qualityflow\\.dart_tool\\flutter_build\\c27676720219c25a61431a4a7e0ec561\\build_hooks_result.json: 
