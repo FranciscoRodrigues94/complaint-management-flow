@@ -122,7 +122,8 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
         if (widget.canExportPdf) OutlinedButton.icon(
           onPressed: _busy ? null : () => _perform(() async {
             final path = await widget.onExportPdf();
-            if (mounted) showNotice(context, 'PDF saved to $path');
+            if (!context.mounted) return;
+            showNotice(context, 'PDF saved to $path');
           }, null),
           icon: const Icon(Icons.picture_as_pdf_outlined), label: const Text('Export PDF'),
         ),
@@ -364,9 +365,12 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
             costField('Scrap', _scrapCost), costField('Rework', _reworkCost),
             costField('Additional inspection', _inspectionCost), costField('Other', _otherCost),
           ];
-          if (constraints.maxWidth < 580) return Column(children: [
-            for (final field in fields) Padding(padding: const EdgeInsets.only(bottom: 12), child: field),
-          ]);
+          if (constraints.maxWidth < 580) {
+            return Column(children: [
+              for (final field in fields)
+                Padding(padding: const EdgeInsets.only(bottom: 12), child: field),
+            ]);
+          }
           return Column(children: [
             Row(children: [Expanded(child: fields[0]), const SizedBox(width: 12), Expanded(child: fields[1])]),
             const SizedBox(height: 12),

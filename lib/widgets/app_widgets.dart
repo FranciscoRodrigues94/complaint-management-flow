@@ -12,6 +12,7 @@ class SectionCard extends StatelessWidget {
   final Widget? trailing;
   const SectionCard({super.key, required this.title, required this.child, this.trailing});
 
+  
   @override
   Widget build(BuildContext context) => Card(
     elevation: 0,
@@ -20,7 +21,10 @@ class SectionCard extends StatelessWidget {
     child: Padding(
       padding: const EdgeInsets.all(20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [Expanded(child: Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: navy))), if (trailing != null) trailing!]),
+        Row(children: [
+          Expanded(child: Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: navy))),
+          ?trailing,
+        ]),
         const SizedBox(height: 16),
         child,
       ]),
@@ -56,13 +60,18 @@ class PageTitle extends StatelessWidget {
   final Widget? action;
   const PageTitle({super.key, required this.title, required this.subtitle, this.action});
 
+  
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Row(children: [Expanded(child: Text(title, style: const TextStyle(fontSize: 27, fontWeight: FontWeight.bold, color: ink))), if (action != null) action!]),
+    Row(children: [
+      Expanded(child: Text(title, style: const TextStyle(fontSize: 27, fontWeight: FontWeight.bold, color: ink))),
+      ?action,
+    ]),
     const SizedBox(height: 5),
     Text(subtitle, style: const TextStyle(fontSize: 13, color: muted)),
     const SizedBox(height: 20),
   ]);
+
 }
 
 String formatDate(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';

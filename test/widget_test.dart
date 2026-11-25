@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import '../lib/main.dart';
+import 'package:qualityflow/main.dart';
 
 void main() {
   testWidgets('Dashboard loads fictional complaints in offline demo mode', (tester) async {

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import '../lib/services/complaint_repository.dart';
+import 'package:qualityflow/services/complaint_repository.dart';
 
 void main() {
   test('Complaint workflow rejects skipping containment or actions', () async {
