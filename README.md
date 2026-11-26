@@ -255,7 +255,7 @@ From the project root:
 
 ```powershell
 cd backend
-docker compose up -d db
+docker compose up -d --wait db
 Copy-Item .env.example .env
 py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
