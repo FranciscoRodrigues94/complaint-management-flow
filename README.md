@@ -144,32 +144,70 @@ PostgreSQL stores complaints, corrective actions and activity events.
 ## Project structure
 
 ```text
-complaint-management-flow/
+
+qualityflow/
 ├── .github/
 │   └── workflows/
 │       ├── flutter_ci.yml
 │       └── python_ci.yml
-├── lib/
-│   ├── main.dart
-│   ├── models/
-│   ├── pages/
-│   ├── services/
-│   └── widgets/
-├── test/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py
+│   │   ├── __init__.py
 │   │   ├── domain.py
+│   │   ├── main.py
 │   │   └── reporting.py
 │   ├── sql/
+│   │   ├── 001_schema.sql
+│   │   └── 002_seed_demo.sql
 │   ├── tests/
-│   ├── requirements.txt
-│   ├── requirements-dev.txt
+│   │   ├── test_pdf.py
+│   │   ├── test_validation.py
+│   │   └── test_workflow.py
+│   ├── .env.example
 │   ├── compose.yaml
-│   └── .env.example
+│   ├── pytest.ini
+│   ├── requirements.txt
+│   └── requirements-dev.txt
 ├── docs/
-│   └── ARCHITECTURE.md
-└── pubspec.yaml
+│   ├── screenshots/
+│   │   ├── dashboard-overview.png
+│   │   ├── dashboard-complaints.png
+│   │   ├── dashboard-analytics.png
+│   │   ├── complaint-register.png
+│   │   ├── complaint-details.png
+│   │   ├── corrective-actions.png
+│   │   ├── quality-costs.png
+│   │   └── pdf-report.png
+│   ├── ARCHITECTURE.md
+│   └── RECRUITER_DEMO.md
+├── lib/
+│   ├── models/
+│   │   └── complaint.dart
+│   ├── pages/
+│   │   ├── about_page.dart
+│   │   ├── actions_page.dart
+│   │   ├── complaint_detail_page.dart
+│   │   ├── complaints_page.dart
+│   │   ├── dashboard_page.dart
+│   │   └── new_complaint_page.dart
+│   ├── services/
+│   │   └── complaint_repository.dart
+│   ├── widgets/
+│   │   └── app_widgets.dart
+│   └── main.dart
+├── test/
+│   ├── demo_workflow_test.dart
+│   └── widget_test.dart
+├── windows/
+│   └── runner/
+│       └── resources/
+│           └── app_icon.ico
+├── .gitignore
+├── analysis_options.yaml
+├── pubspec.yaml
+├── pubspec.lock
+└── README.md
+
 ```
 
 ## Quick start — Offline Demo Mode

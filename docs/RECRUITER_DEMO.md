@@ -2,9 +2,9 @@
 
 ## Goal
 
-Demonstrate a practical industrial quality management workflow rather than a generic create/read/update/delete application.
+Demonstrate a practical industrial quality management workflow, focusing on complaint handling, corrective actions, and process improvement.
 
-QualityFlow combines complaint registration, corrective action management, workflow validation, quality cost analysis and reporting.
+QualityFlow combines complaint registration, corrective action tracking, workflow validation, quality cost analysis, and reporting.
 
 The application can be explored in Demo Mode without installing Python or PostgreSQL.
 
@@ -34,13 +34,15 @@ Open the Dashboard and review:
 - High-severity complaints
 - Overdue corrective actions
 - Defect categories and monthly trends
-- Estimated and recorded quality costs
+- Recorded quality costs by category
+- Overview of corrective actions requiring attention
+- List of recent complaints and their current statuses
 
 **Key point:** QualityFlow turns complaint records into operational and financial indicators.
 
 ### 2. Complaint Register
 
-Open the complaint register.
+Open the complaint register in "Complaints"
 
 Demonstrate searching, filtering by status or severity, and opening an existing case.
 
